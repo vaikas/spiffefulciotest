@@ -1,0 +1,44 @@
+# Copyright 2021 Chainguard, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire
+  namespace: spire-test
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire
+  namespace: spire-test
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: spire
+  clusterIP: None
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: spire
+  namespace: spire-test
+  labels:
+    app: spire
+spec:
+  serviceAccountName: spire
+  containers:
+    - name: spire
+      image: ko://github.com/vaikas/spiffefulciotest/cmd
+      ports:
+      - containerPort: 8080
+        name: spire
+      volumeMounts:
+      - name: spiffe-workload-api
+        mountPath: /spiffe-workload-api
+        readOnly: true
+  volumes:
+  - name: spiffe-workload-api
+    csi:
+      driver: "csi.spiffe.io"

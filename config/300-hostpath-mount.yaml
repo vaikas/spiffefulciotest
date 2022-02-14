@@ -1,0 +1,58 @@
+# Copyright 2021 Chainguard, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire
+  namespace: spire-test
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire
+  namespace: spire-test
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: spire
+  clusterIP: None
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: spire
+  namespace: spire-test
+  labels:
+    app: spire
+spec:
+  serviceAccountName: spire
+  containers:
+    - name: spire
+      image: ko://github.com/vaikas/spiffefulciotest/cmd
+      env:
+      - name: SPIFFE_ENDPOINT_SOCKET
+        value: "/run/spire/sockets/agent.sock"
+      - name: SIGSTORE_CT_LOG_PUBLIC_KEY_FILE
+        value: "/var/run/sigstore-root/rootfile.pem"
+      ports:
+      - containerPort: 8080
+        name: spire
+      volumeMounts:
+      - name: spiffe-workload-api
+        mountPath: /run/spire/sockets/agent.sock
+        readOnly: true
+      - name: keys
+        mountPath: "/var/run/sigstore-root"
+        readOnly: true
+  volumes:
+  - name: spiffe-workload-api
+    hostPath:
+      path: /run/spire/sockets/agent.sock
+  - name: keys
+    secret:
+      secretName: ctlog-public-key
+      items:
+      - key: public
+        path: rootfile.pem
